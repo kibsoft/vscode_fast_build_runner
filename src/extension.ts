@@ -20,14 +20,10 @@ export function activate(context: vscode.ExtensionContext) {
 
         /// Guard against no workspace name
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri!);
-        const workspaceName = workspaceFolder?.name;
-        if (workspaceName === undefined) return [];
+        const workspacePath = workspaceFolder?.uri.fsPath; // Use fsPath for relative paths
+        if (workspacePath === undefined) return [];
 
-        /// Guard against no workspace path
-        const workspacePath = workspaceFolder?.uri.path;
-        if (workspacePath === undefined) [];
-
-        const relativePath = path?.replace(workspacePath!, "");
+        const relativePath = vscode.workspace.asRelativePath(path!);
         const segments = relativePath?.split("/").filter((e) => e !== "");
 
         /// Guard against no top level folder
@@ -38,10 +34,8 @@ export function activate(context: vscode.ExtensionContext) {
           0,
           segments!.length - 1
         );
-        const bottomLevelFolder = `${workspacePath}/${segmentsWithoutFilename.join(
-          "/"
-        )}`;
-        const targetFile = path;
+        const bottomLevelFolder = `${segmentsWithoutFilename.join("/")}`;
+        const targetFile = relativePath;
 
         /// Guard against common generated files
         const targetIsFreezed = targetFile?.endsWith(".freezed.dart");
@@ -70,7 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       const filters = await _route();
       /// get dart configuration
-      const config =  vscode.workspace.getConfiguration('dart');
+      const config = vscode.workspace.getConfiguration('dart');
       /// get chosen workspace SDK path
       const flutterSdkPath = config.get('flutterSdkPath');
       /// generate path
@@ -82,7 +76,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (filters === null) {
         /// Pick a workspace folder
         const result = await vscode.window.showWorkspaceFolderPick();
-        const path = result?.uri.path;
+        const path = result?.uri.fsPath;
 
         /// No workspace selected intentionally
         if (path === undefined) {
