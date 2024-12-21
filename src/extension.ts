@@ -1,6 +1,8 @@
 /* eslint-disable curly */
 import * as vscode from "vscode";
 
+let terminal: vscode.Terminal | null = null;
+
 export function activate(context: vscode.ExtensionContext) {
   let disposable = vscode.commands.registerCommand(
     "build-runner.quickly",
@@ -64,12 +66,12 @@ export function activate(context: vscode.ExtensionContext) {
 
       const filters = await _route();
       /// get dart configuration
-      const config = vscode.workspace.getConfiguration('dart');
+      const config = vscode.workspace.getConfiguration("dart");
       /// get chosen workspace SDK path
-      const flutterSdkPath = config.get('flutterSdkPath');
+      const flutterSdkPath = config.get("flutterSdkPath");
       /// generate path
       const commandPrefix =
-          flutterSdkPath == null ? `dart` : `${flutterSdkPath}/bin/dart`;
+        flutterSdkPath == null ? `dart` : `${flutterSdkPath}/bin/dart`;
 
       /// Null filters because no workspace, let's ask the user to pick a workspace
       /// so we can run build_runner on it
@@ -88,8 +90,9 @@ export function activate(context: vscode.ExtensionContext) {
         /// Workspace selected, lets run build_runner on it
         else {
           const command = `cd ${path} && ${commandPrefix} run build_runner build --delete-conflicting-outputs`;
-          const terminal = vscode.window.createTerminal(`build_runner`);
-
+          if (!terminal) {
+            terminal = vscode.window.createTerminal("build_runner");
+          }
           terminal.sendText(command);
           console.log(command);
           vscode.window.showInformationMessage(`Running build_runner quickly`);
@@ -103,12 +106,11 @@ export function activate(context: vscode.ExtensionContext) {
           .map((path) => `--build-filter="${path}"`)
           .join(" ");
 
-        const terminal = vscode.window.createTerminal(`build_runner`);
-
-
         const command = `${commandPrefix} run build_runner build --delete-conflicting-outputs ${buildFilters}`;
 
-        /// Attempt to build with filters
+        if (!terminal) {
+          terminal = vscode.window.createTerminal("build_runner");
+        }
         terminal.sendText(command);
         console.log(command);
         vscode.window.showInformationMessage(`Running build_runner quickly`);
@@ -120,4 +122,8 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {
+  if (terminal) {
+    terminal.dispose();
+  }
+}
